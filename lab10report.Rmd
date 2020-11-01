@@ -1,0 +1,300 @@
+---
+title: "STATS 250 Lab 10"
+author: "Lab Dream Team"
+date: "Week of 11/02/2020"
+output:
+  html_document:
+  toc: true
+toc_float: true
+toc_collapsed: true
+theme: lumen
+---
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+if (!require(checkmate))
+  install.packages('checkmate')
+source("plot_ci.R")
+source("plotNorm.R")
+source("prop_test.R")
+```
+
+## Learning Objectives
+
+### Statistical Learning Objectives
+1. Understand how confidence intervals are constructed
+1. Understand what a confidence level means
+1. Consider the relationship between confidence intervals and hypothesis testing
+
+### R Learning Objectives
+1. Interpret R output providing confidence intervals and hypothesis tests for inference on population proportions.
+1. Use R as a calculator to compute a confidence interval
+
+
+### Functions covered in this lab
+1. `prop_test()`
+
+### Weekly Advice
+The function `prop_test()` will compute the results from both a hypothesis test and a confidence interval. You should pay close attention to the alternative hypothesis. If you are running a hypothesis test, be sure that the correct direction (`greater`, `less`, `two.sided`) is specified in `prop_test`, otherwise your p-value will be inaccurate. If you are running a confidence interval, be sure that the direction is set to `two.sided`, which can be achieved by leaving the alternative hypothesis as the default. You can double-check your thinking by reading the output - the alternative hypothesis is printed in the 4th line of output.
+  
+### Lab Demo: ISRS Problem 3.9
+
+**Life after college.** We're interested in estimating the proportion of graduates at a mid-sized university who found a job within one year of completing their undergraduate degree. Suppose we conduct a survey and find out that 348 of the 400 randomly sampled graduates found jobs. The graduating class under consideration included over 4500 students.
+
+#### Part 1: What are we trying to find? What do we know?
+
+> What is the population parameter of interest? 
+
+*Replace this text with your description of the parameter.*
+
+> What is the value of the point estimate of this parameter?
+
+```{r pointEstimate, error = T}
+# Use R as a calculator to find the point estimate.
+
+```
+
+#### Part 2: Check conditions.
+
+> Check if the conditions for constructing a confidence interval based on these data are met.
+
+```{r part2work, error = T}
+# Use this chunk to check conditions if necessary.
+
+```
+
+#### Part 3: Compute a confidence interval.
+
+> Calculate a 95% confidence interval for the proportion of graduates who found a job within one year of completing their undergraduate degree at this university, and interpret it in the context of the data.
+
+Okay, here's where we're gonna do some work. Remember that a confidence interval looks generally like
+$$\text{estimate} \pm \text{(a few)} \times \mathrm{SE}(\text{estimate}).$$
+
+Remember that a multiplier of 1.96 will give us a 95% confidence interval, since 95% of a normal distribution is within 1.96 standard deviations of the mean.
+
+```{r plotNorm196}
+plotNorm(shadeValues = c(-1.96, 1.96), direction = "inside")
+```
+
+We can estimate the standard error of our estimate $\hat{p}$ using the formula given on page 3 of the notes for sections 3.1 - 3.2 (note that we'll use $\hat{p}$ instead of $p$ in the formula since we're making a confidence interval and that's our best guess of $p$)=.
+
+$$\mathrm{SE}_\hat{p} = \sqrt{\frac{p(1-p)}{n}}$$
+
+```{r SEphat, error = T}
+# Use R as a calculator to compute the standard error of p-hat that we'll use in this confidence interval. The sqrt() function might be of use.
+
+```
+
+We'll now compute what's called the **margin of error**: the term that's added to and subtracted from the estimate ($\hat{p}$) to get the limits of the confidence interval. The margin of error is the multiplier (here, 1.96) times the standard error of the estimate.
+
+```{r moe, error = T}
+# Use R as a calculator to compute the 95% margin of error (i.e., the margin of error which is associated with a 95% confidence interval). 
+
+```
+
+Now, to finish up, we add and subtract the margin of error to our estimate.
+
+```{r confLimits, error = T}
+# Use R as a calculator to compute the confidence limits.
+
+```
+
+So now we've computed a 95% confidence interval. It's time to interpret it in the context of the data.
+
+*Replace this text with your interpretation of the confidence interval.*
+
+#### Part 4: Interpreting a confidence level
+
+> What does "95% confidence" mean?
+
+To address this question, let's imagine we know the population proportion $p$ of students at this university who find a job within one year of completing their undergraduate degree is 0.85. We can imagine taking samples of a population where this is true, and calling a student in our sample who found a job within one year a "success" (and "coding" them as a 1 in our data), and coding students who don't fit this criterion as a zero. Let's take 50 such samples and make 50 95% confidence intervals. 
+
+First, we'll set the seed to ensure reproducible randomness.
+
+```{r setseed}
+set.seed(5902)
+```
+
+Now, we'll use `replicate()` and `sample()` to produce confidence intervals.
+
+```{r confLevelExample}
+ci <- replicate(50, {
+  s <- sample(0:1, size = 400, replace = TRUE, prob = c(0.15, 0.85))
+  
+  pHat <- sum(s) / 400  # Add up all the 1's and 0's and divide by 400
+  se <- sqrt(pHat * (1 - pHat) / 400) # Compute se(pHat)
+  marginOfError <- 1.96 * se  # Compute the 95% margin of error
+  
+  lowerLimit <- pHat - marginOfError
+  upperLimit <- pHat + marginOfError
+  
+  c(lowerLimit, upperLimit) # spit out a vector of the confidence limits
+})
+
+# This code just flips the rows and columns of ci so that it's slightly easier to work with
+ci <- t(ci)
+
+# Let's look at what we got:
+head(ci)
+```
+
+Each row of `ci` is a confidence interval: the first column has lower bounds, the second has upper bounds. We can easily visualize these results using the  `plot_ci()` function provided to us by *ISRS*. The first argument is the vector of all the lower bounds, the second argument is the vector of all the upper bounds, and the third is the true population parameter value. 
+
+```{r plotCIexample}
+plot_ci(ci[, 1], ci[, 2], m = 0.85)
+```
+
+Of our 50 confidence intervals, only 2 don't "cover" the population proportion $p$: 96% of them do. Remember that each interval either contains $p$ or doesn't. 
+
+*Replace this text with an interpretation of the 95% confidence level*
+
+#### Part 5: Switch it up -- make a 99% confidence interval
+
+Now let's make a 99% confidence interval, this time making R do the heavy lifting. We wrote a function for you called `prop_test()` that will easily do this. Let's see how it works to reproduce our 95% confidence interval from above.
+
+```{r proptestexample}
+prop_test(x = 348, n = 400, conf.level = 0.95)
+```
+
+In the code, `x` is the number of successes, `n` is the sample size, and `conf.level` is the confidence level.
+The 95% confidence interval is labeled as such: it's (0.8370, 0.9030). 
+
+Now try changing up the code to produce a 99% confidence interval.
+
+```{r proptest99, error = T}
+# Use prop_test() to create a 99% confidence interval for p, the population proportion of all graduates at the university who find a job within one year of completing their undergraduate degree.
+
+```
+
+How does the width of the 99% confidence interval compare to that of the 95% confidence interval?
+
+#### Part 6: Hypothesis Test
+
+Notice that the output for the `prop_test()` chunk also gave us other results, such as the value of Z, a p-value, and a recap of the alternative hypothesis. That is because the function `prop_test` does both things at once - creates a confidence interval and a hypothesis test. 
+
+**Be careful with your alternative hypothesis.** If you want to run a confidence interval, the default of `two.sided` must be selected, otherwise you will end up with junk. If you want to run a hypothesis test, and do not want it to be `two.sided`, then you'll need to specify so to R.
+
+Let's run a left-tailed hypothesis test with our data, and assume that we are testing $H_0: p = 0.5$, $H_a: p < 0.5$. We will tell R the null hypothesis and the direction of the alternative hypothesis.
+
+```{r proptestexample2}
+prop_test(x = 348, n = 400, p = 0.5, alternative = "less")
+```
+
+Notice that the Z test statistic remains the same, as this is unaffected by our choice of $H_a_$. The p-value, however, does change to reflect shading to the *right* of 14.8 on N(0,1). Also notice that the confidence interval that is printed is not usable, and does not match what we found earlier.
+
+*Why do you think we get a p-value of 1? Write your thoughts here.*
+
+#### `prop_test()` for two proportions
+
+The great thing about `prop_test()` is that it will also work for creating confidence intervals and hypothesis tests for two proportions (i.e. independence). All you have to do is give R a vector of your successes *x* and a vector of your sample sizes *n*, remembering that order matters.
+
+Let's suppose that there are 28 successes of 30 in group 1, and 34 successes of 50 in group 2. Let's see what `prop_test()` gives us.
+
+```{r proptestexample3}
+prop_test(x = c(28, 34), n = c(30, 50), conf.level = 0.9)
+```
+
+Wonderful. We can clearly see our results and use it however we need. 
+
+## Try It!
+Depending on your instruction method (synchronous remote, asynchronous remote), complete the following exercises collaboratively. 
+
+1. **Asynchronous remote:** Join a Piazza lab group for asynchronous collaboration.
+
+**Collaborators:** If applicable, replace this text with the names of anyone you collaborated with on this project.
+
+A 2012 Gallup Poll surveyed Americans about their employment status and whether or not they have diabetes. The survey results indicate that 1.5% of the 47,774 employed (full or part time) and 2.5% of the 5,855 unemployed 18-29 year olds have diabetes.
+
+>**1.** Fill in the below two-way table to present the results of this study.
+
+|                        | Employed | Unemployed | Total |
+|:-----------------------|:--------:|:----------:|:-----:|
+| Has diabetes           |          |            |       |
+| Does not have diabetes |          |            |       |
+| Total                  |          |            |       |
+
+
+> **2.** State the appropriate hypotheses to test for a difference in the rates of employment for those who have diabetes and those who do not have diabetes.
+
+$H_0$: Replace this text with your null hypothesis
+$H_a$: Replace this text with your alternative hypothesis
+
+> **3.** Compute the value of the pooled estimate of the sample proportion. Use R as a calculator to compute this result.
+
+```{r tryIt3, error = T}
+# Replace this comment with code required for Try It 3. (Remember that this text is a comment, so R ignores it; you can delete it if you want.) If you don't delete it, **start your code on a new line that doesn't start with #**
+
+```
+
+> **4.** Check the conditions necessary to complete this hypothesis test. Use R as a calculator for your computations, then discuss whether your condition has been met or not.
+
+```{r tryIt4, error = T}
+# Replace this comment with code required for Try It 4. (Remember that this text is a comment, so R ignores it; you can delete it if you want.) If you don't delete it, **start your code on a new line that doesn't start with #**
+
+```
+
+Replace this text with your answer to Try It 4.
+
+> **5.** Use `prop_test` to find the value of the test statistic and the p-value. Report your test statistic and p-value below.
+  
+```{r tryIt5, error = T}
+# Replace this comment with code required for Try It 5. (Remember that this text is a comment, so R ignores it; you can delete it if you want.) If you don't delete it, **start your code on a new line that doesn't start with #**
+
+```
+
+The value of the test statistic is *replace this with the value of the test statistic*.
+The p-value is *replace this with the p-value*.
+
+> **6** Use `plotNorm()` to plot the distribution of the test statistic. *Hint: the test statistic is a Z test statistic, and Z values are on the ... distribution.*
+
+```{r tryIt6}
+# Replace this comment with code required for Try It 6. (Remember that this text is a comment, so R ignores it; you can delete it if you want.) If you don't delete it, **start your code on a new line that doesn't start with #**
+
+```
+
+Replace this text with your answer to Try It 6.
+
+## Dive Deeper
+
+> **1.** Use `pnorm()` to help you find the probability of observing this test statistic or something more extreme. *Hint: Think about the picture we made in Try It 6 - we will need to find a two-sided probability.* Is this the same as the p-value you found in Try It 5?
+
+```{r diveDeeper1}
+# Replace this comment with code required for Dive Deeper 1. (Remember that this text is a comment, so R ignores it; you can delete it if you want.) If you don't delete it, **start your code on a new line that doesn't start with #**
+
+```
+
+Replace this text with your written answer for Dive Deeper 1.
+
+> **2.** What conclusion can be made from the data?
+
+Replace this text with your written answer for Dive Deeper 2.
+
+> **3.** Look at the confidence interval that was printed by `prop_test()` in Try It 5. Let's tie in the conclusion from the hypothesis test to that confidence interval.
+
+The value of the difference in the rates of employment for those who have diabetes and those who do not have diabetes, assuming the null hypothesis is true, is *replace this text with the value of the null hypothesis*.
+
+Looking at the 95% confidence interval for the difference in the rates of employment for those who have diabetes and those who do not have diabetes, which is *replace this text with the 95% confidence interval from Try It 5*, we observe that the value of the null hypothesis of *replace this text with the value of the null hypothesis* is NOT contained in the interval. 
+
+Since it is NOT contained in the confidence interval, we can *replace this text with the phrase "reject" or "not reject"* the null hypothesis, which does match the conclusion that we made from the data in Dive Deeper 1. Thus, we can use confidence intervals to help us make conclusions about hypothesis tests.
+
+## Wrap-Up and Submission
+
+At the top of the document, make sure you've changed the `author` field to your name (in quotes!). If you'd like, change the date as well.
+
+**When you've finished the lab, click the Knit button one last time.**
+
+
+### Submission instructions
+#### If you're using RStudio Cloud
+1. In the Files pane, check the box next to `lab10report.html`.
+2. Click More > Export...
+3. Click Download and save the file on your computer in a folder you'll remember and be able to find later. You can just call the file `lab10report.html` or whatever else you'd like (as long as you remember what you called it).
+
+#### If you're using RStudio installed on your computer
+1. locate the `lab10report.html` file on your computer. The file will be saved in the location indicated at the top of the files pane.
+
+#### Submission to Canvas
+
+1. Click the "Assignments" panel on the left side of the page. Scroll to find "Lab 10", and open the assignment. Click "Submit Assignment". 
+2. Towards the bottom of the page, you'll be able to choose `lab10report.html` from the folder you saved it in from RStudio Cloud or noted if you're using RStudio Desktop. **You will only be able to upload a .html file -- do not upload any other file type.**
+  3. Click "Submit Assignment". You're done! 
