@@ -12,8 +12,6 @@ theme: lumen
   
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-if (!require(checkmate))
-  install.packages('checkmate')
 source("plot_ci.R")
 source("plotNorm.R")
 source("prop_test.R")
@@ -245,14 +243,13 @@ Replace this text with your answer to Try It 4.
 The value of the test statistic is *replace this with the value of the test statistic*.
 The p-value is *replace this with the p-value*.
 
-> **6** Use `plotNorm()` to plot the distribution of the test statistic. *Hint: the test statistic is a Z test statistic, and Z values are on the ... distribution.*
+> **6** Use `plotNorm()` to plot the distribution of the test statistic. *Hint: the test statistic is a Z test statistic, and Z values are on the ... distribution.* You might want to use the `xlim` argument to `plotNorm()` as well: `xlim = c(1, 2)` would set the x-axis to range from 1 to 2, for instance.
 
 ```{r tryIt6}
 # Replace this comment with code required for Try It 6. (Remember that this text is a comment, so R ignores it; you can delete it if you want.) If you don't delete it, **start your code on a new line that doesn't start with #**
 
 ```
 
-Replace this text with your answer to Try It 6.
 
 ## Dive Deeper
 
